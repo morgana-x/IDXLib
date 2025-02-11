@@ -1,5 +1,5 @@
 # IDXLib
-A library for the Luck Star no Mori game series's IDX Archives
+A library for the Lucky Star no Mori game series's IDX Archives
 
 Archived Games: https://archive.org/details/lucky-star-no-mori
 
