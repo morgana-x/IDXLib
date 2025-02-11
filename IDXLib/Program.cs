@@ -15,6 +15,8 @@ public partial class Program
         string folder = filePath.Replace(".idx", "");
         if (!Directory.Exists(folder))
             Directory.CreateDirectory(folder);
+        Console.WriteLine($"Extracting to {folder}...");
         idx.ExtractAll(folder);
+        Console.WriteLine($"Finished extracting {idx.files.Count} files!");
     }
 }

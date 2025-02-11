@@ -12,30 +12,32 @@ namespace IDXLib
             this.stream = stream;
             ReadHeader();
         }
-        public void ExtractFile(IDXFile file, string outFolder)
+        public byte[] GetFileData(IDXFile file)
         {
-            string outPath = Path.Combine(outFolder, file.Name);
-            Console.WriteLine(outPath);
             byte[] buffer = new byte[file.Size];
             stream.Position = file.Location;
             stream.Read(buffer);
-            File.WriteAllBytes(outPath, buffer);
+            return buffer;
+        }
+        public void ExtractFile(IDXFile file, string outFolder)
+        {
+            File.WriteAllBytes(Path.Combine(outFolder, file.Name), GetFileData(file));
         }
         public void ExtractAll(string outFolder)
         {
             foreach (IDXFile file in files)
-            {
                 ExtractFile(file, outFolder);
-            }
         }
         private IDXFile ReadFile(BinaryReader br)
         {
             int dataLocation = br.ReadInt32();
             ulong dataSize = br.ReadUInt32();
+
             br.BaseStream.Position += 8;
             byte[] textBuffer = new byte[32];
             br.Read(textBuffer);
             string fileName = Encoding.UTF8.GetString(textBuffer).TrimEnd().Replace("\0", "");
+
             var fileEnt = new IDXFile(fileName, dataLocation, dataSize);
             files.Add(fileEnt);
             return fileEnt;
@@ -44,17 +46,17 @@ namespace IDXLib
         private void ReadHeader()
         {
             stream.Seek(0, SeekOrigin.Begin);
+
             BinaryReader br = new BinaryReader(stream);
-            stream.Position += header.Length;
-            stream.Position += 392;
+
+            stream.Position += header.Length + 392; // Some unknown data here
+
             br.BaseStream.Position = 1056;
 
             var firstFile = ReadFile(br);
-            while (br.BaseStream.Position < firstFile.Location)//for (ushort i = 0; i < 100; i++)
-            {
-                ReadFile(br);
-            }
 
+            while (br.BaseStream.Position < firstFile.Location)
+                ReadFile(br);
         }
     }
 }
