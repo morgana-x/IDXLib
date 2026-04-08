@@ -1,0 +1,54 @@
+//------------------------------------------------
+//--- 010 Editor v14.0 Binary Template
+//
+//      File: IDX.bt
+//   Authors: morgana
+//   Version: 1.2
+//   Purpose: 
+//  Category: Game
+// File Mask: *.idx
+//  ID Bytes: 49 44 58 32
+//   History: 
+//------------------------------------------------
+
+
+struct IDXHeader
+{
+    char Identifier[4] <bgcolor=0xaaffaa>;
+    
+    short Version <bgcolor=0xffffaa>;
+    
+    short NumFiles <bgcolor=0xaaaaff>;
+    
+    uint32 FileSize <bgcolor=0xaaffff>;
+    
+    uint32 DataPointer <bgcolor=0xdfffff>;
+    
+    string Author;
+} Header <bgcolor=0xaaaaff>;
+
+typedef struct IDXFile
+{
+    uint32 Pointer;
+    uint32 Size;
+    
+    uint64 Blank;
+    
+    char Name[32] <bgcolor=0xddddff>;
+    
+    local long pos = FTell();
+    FSeek(Pointer);
+    byte Data[Size];
+    FSeek(pos);
+};
+
+struct IDXFiles
+{
+    FSeek(1056);
+    IDXFile Files[Header.NumFiles] <optimize=false>;
+}Files <bgcolor=0xffaaaa>;
+
+
+
+
+
