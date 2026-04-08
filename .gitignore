@@ -4,4 +4,5 @@
 
 /.vs/IDXLib
 /IDXLib/obj
-/IDXLib/bin/Debug/net8.0
+/IDXLib/bin
+/.vs
