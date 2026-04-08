@@ -2,55 +2,49 @@
 {
     public class IDX
     {
-        Stream stream;
-     
-        public List<IDXFile> files = new List<IDXFile>();
+        Stream _stream;
+        BinaryReader _br;
+
+        public List<IDXFile> Files;
+
         public IDX(Stream stream)
         {
-            this.stream = stream;
-            ReadHeader();
+            Files = new List<IDXFile>();
+
+            _stream = stream;
+            _br = new BinaryReader(_stream);
+
+            // File metadata location
+            _br.BaseStream.Position = 1056;
+        
+            Files.Add(new IDXFile(_br));
+
+            while (_br.BaseStream.Position < Files.First().Location)
+                Files.Add(new IDXFile(_br));
         }
 
         public void ExtractFile(IDXFile file, string outFolder)
         {
             File.WriteAllBytes(Path.Combine(outFolder, file.Name), GetFileData(file));
         }
+
         public void ExtractAll(string outFolder)
         {
-            foreach (IDXFile file in files)
+            foreach (IDXFile file in Files)
                 ExtractFile(file, outFolder);
         }
+
         public byte[] GetFileData(IDXFile file)
         {
-            byte[] buffer = new byte[file.Size];
-            stream.Position = file.Location;
-            stream.Read(buffer);
-            return buffer;
-        }
-
-        private void ReadHeader()
-        {
-            stream.Seek(0, SeekOrigin.Begin);
-            BinaryReader br = new BinaryReader(stream);
-            ReadFileInfo(br);
-        }
-        private void ReadFileInfo(BinaryReader br)
-        {
-            files.Clear();
-
-            br.BaseStream.Position = 1056;
-
-            var firstFile = new IDXFile(br, files);
-
-            while (br.BaseStream.Position < firstFile.Location)
-                new IDXFile(br, files);
+            _br.BaseStream.Position = file.Location;
+            return _br.ReadBytes((int)file.Size);
         }
 
         public void Dispose()
         {
-            stream.Dispose();
-            stream.Close();
-            files.Clear();
+            _stream.Dispose();
+            _stream.Close();
+            Files.Clear();
         }
     }
 }

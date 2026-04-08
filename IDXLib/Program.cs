@@ -29,8 +29,9 @@ public partial class Program
         Console.WriteLine($"Extracting to {folder}...");
 
         idx.ExtractAll(folder);
-        idx.Dispose();
 
-        Console.WriteLine($"Finished extracting {idx.files.Count} files!");
+        Console.WriteLine($"Finished extracting {idx.Files.Count} files!");
+
+        idx.Dispose();
     }
 }
