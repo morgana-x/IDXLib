@@ -100,7 +100,7 @@
                 {
                     var fs = new FileStream(f, FileMode.Open, FileAccess.Read);
 
-                    IDXFile.Write(fileStream, Path.GetFileName(f), (uint)(dataSection + dataStream.Position), (uint)fs.Length);
+                    IDXFile.Write(fileStream, Path.GetFileName(f), (uint)(dataSection + dataStream.Position), (uint)fs.Length, IDXCompress.ShouldBeCompressed(f));
 
                     fs.CopyTo(dataStream);
                     fs.Dispose();
