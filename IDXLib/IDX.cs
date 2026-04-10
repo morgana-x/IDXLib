@@ -4,7 +4,7 @@
     {
         // Constants
 
-        const int NumFolders = 74;
+        const int NumFolders = 75;
 
         internal const int FolderSection = 224;
 
@@ -85,7 +85,7 @@
 
             int fileIndex = 0;
 
-            for (int i = 0; i < 75; i++)
+            for (int i = 0; i < NumFolders; i++)
             {
                 if (i > 16 && i < 42)
                 {
