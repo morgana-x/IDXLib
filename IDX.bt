@@ -27,12 +27,27 @@ struct IDXHeader
     string Author;
 } Header <bgcolor=0xaaaaff>;
 
+typedef struct FolderEntry
+{
+    ushort StartIndex <bgcolor=0xccffcc>;
+    ushort NumFiles <bgcolor=0xffccaa>;
+};
+
+
+FSeek(412);
+struct IDXFolders
+{
+    // Size 108
+    FolderEntry Entries[27];
+    
+} Folders <bgcolor=0xbbffbb>;
+
 typedef struct IDXFile
 {
     uint32 Pointer;
     uint32 Size;
     
-    uint64 Blank;
+    uint64 Compressed;
     
     char Name[32] <bgcolor=0xddddff>;
     
@@ -42,9 +57,9 @@ typedef struct IDXFile
     FSeek(pos);
 };
 
+FSeek(1056);
 struct IDXFiles
 {
-    FSeek(1056);
     IDXFile Files[Header.NumFiles] <optimize=false>;
 }Files <bgcolor=0xffaaaa>;
 

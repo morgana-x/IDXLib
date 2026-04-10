@@ -10,12 +10,14 @@ namespace IDXLib
 
         public string Name;
 
+        public ulong Compressed;
+
         public IDXFile(BinaryReader br)
         {
             Location = br.ReadUInt32();
             Size = br.ReadUInt32();
 
-            br.BaseStream.Position += 8;
+            Compressed = br.ReadUInt64();
 
             Name = Encoding.UTF8.GetString(br.ReadBytes(32)).TrimEnd().Replace("\0", "");
         }

@@ -2,22 +2,28 @@
 {
     public class IDX
     {
-        // "IDX2"
-        static byte[] Identifier = new byte[] { 0x49, 0x44, 0x58, 0x32 };
+        // Constants
 
-        // "ELEMENTAL SOFT"
-        static byte[] Author = new byte[] { 0x45, 0x4C, 0x45, 0x4D, 0x45, 0x4E, 0x54, 0x41, 0x4C, 0x20, 0x53, 0x4F, 0x46, 0x54 };
+        const int NumFolders = 27;
+
+        internal const int FolderSection = 412;
+
+        internal const int FileSection = 1056;
+
 
         Stream _stream;
         BinaryReader _br;
 
-        public List<IDXFile> Files;
 
-        public short Version;
+        public byte[] Version = [2];
+
+        public IDXFolder[] Folders = new IDXFolder[NumFolders];
+
+        public ushort NumFiles;
+
 
         public IDX(Stream stream)
         {
-            Files = new List<IDXFile>();
 
             _stream = stream;
             _br = new BinaryReader(_stream);
@@ -25,65 +31,81 @@
             // Skip identifier
             _br.BaseStream.Position = 4;
 
-            // This is actually 2 bytes for Major / Minor version, but since it doesn't change, who cares!
-            Version = _br.ReadInt16();
+            // Major, Minor
+            Version = _br.ReadBytes(2);
 
-            ushort numFiles = _br.ReadUInt16();
+            NumFiles = _br.ReadUInt16();
 
             uint fileSize = _br.ReadUInt32();
 
-            // All file data pointers are absolute... todo: figure out why this exists
             uint dataSection = _br.ReadUInt32();
 
-            // File metadata location
-            _br.BaseStream.Position = 1056;
-        
-            for (int i = 0; i < numFiles && _br.BaseStream.Position < dataSection; i++)
-                Files.Add(new IDXFile(_br));
-        }
+            // Folder entries location
+            _br.BaseStream.Position = FolderSection;
 
-        public void ExtractFile(IDXFile file, string outFolder)
-        {
-            File.WriteAllBytes(Path.Combine(outFolder, file.Name), GetFileData(file));
+            for (int i = 0; i < NumFolders; i++)
+                Folders[i] = new IDXFolder(_br);
         }
-
-        public void ExtractAll(string outFolder)
-        {
-            foreach (IDXFile file in Files)
-                ExtractFile(file, outFolder);
-        }
-
         public byte[] GetFileData(IDXFile file)
         {
             _br.BaseStream.Position = file.Location;
             return _br.ReadBytes((int)file.Size);
         }
 
+        public void ExtractFile(IDXFile file, string outFolder)
+        {
+            var parent = Directory.GetParent(outFolder).FullName;
+            if (!Directory.Exists(parent))
+                Directory.CreateDirectory(parent);
+
+            File.WriteAllBytes(Path.Combine(outFolder, file.Name), GetFileData(file));
+        }
+
+        public void ExtractAll(string outFolder)
+        {
+            for (int i = 0; i < Folders.Length; i++)
+                foreach (var file in Folders[i].Files)
+                    ExtractFile(file, $"{outFolder}/{IDXFolder.GetName(i)}/");
+        }
+
+
         public void Dispose()
         {
             _stream.Dispose();
             _stream.Close();
-            Files.Clear();
         }
 
-
-        const uint FileSection = 1056;
-
-        static Stream generateFileSection(string[] files, uint dataSection)
+        static void generateFileInfo(string folder, uint dataSection, out Stream directoryStream, out Stream fileStream)
         {
-            Stream fileStream = new MemoryStream();
+            directoryStream = new MemoryStream();
+
+            fileStream = new MemoryStream();
 
             Stream dataStream = new MemoryStream();
 
-            for (int i = 0; i < files.Length; i++)
+            int fileIndex = 0;
+
+            for (int i = 0; i < IDXFolder.FolderChars.Length; i++)
             {
-                var fs = new FileStream(files[i], FileMode.Open, FileAccess.Read);
+                string path = folder + "/" + IDXFolder.FolderChars[i];
 
-                IDXFile.Write(fileStream, Path.GetFileName(files[i]), (uint)(dataSection + dataStream.Position), (uint)fs.Length);
+                var files = Directory.Exists(path) ? Directory.GetFiles(path).ToList() : new List<string>();
+                files.Sort(new ShiftJisSorter());
 
-                fs.CopyTo(dataStream);
-                fs.Dispose();
-                fs.Close();
+                IDXFolder.Write(directoryStream, (ushort)(files.Count > 0 ? fileIndex : 0), (ushort)files.Count);
+
+                fileIndex += files.Count;
+
+                foreach(var f in files)
+                {
+                    var fs = new FileStream(f, FileMode.Open, FileAccess.Read);
+
+                    IDXFile.Write(fileStream, Path.GetFileName(f), (uint)(dataSection + dataStream.Position), (uint)fs.Length);
+
+                    fs.CopyTo(dataStream);
+                    fs.Dispose();
+                    fs.Close();
+                }
             }
 
             dataStream.Position = 0;
@@ -91,51 +113,67 @@
             dataStream.Dispose();
             dataStream.Close();
 
-            return fileStream;
+            return;
         }
+
+        // "IDX2"
+        static byte[] Identifier = new byte[] { 0x49, 0x44, 0x58, 0x32 };
+
+        // "ELEMENTAL SOFT"
+        static byte[] Author = new byte[] { 0x45, 0x4C, 0x45, 0x4D, 0x45, 0x4E, 0x54, 0x41, 0x4C, 0x20, 0x53, 0x4F, 0x46, 0x54 };
 
         public static void Repack(string folder, string outPath="")
         {
             if (outPath == "")
                 outPath = folder + ".idx";
 
-            var files = Directory.GetFiles(folder);
+            var numFiles = new DirectoryInfo(folder).GetFiles("*", SearchOption.AllDirectories).Length;
 
-            uint dataSection = (uint)(FileSection + (files.Length * 48));
+            uint dataSection = (uint)(FileSection + (numFiles * 48));
 
             Stream idxStream = new FileStream(outPath, FileMode.Create, FileAccess.Write);
 
-            Stream fileDataStream = generateFileSection(files, dataSection);
+            generateFileInfo(folder, dataSection, out Stream folderDataStream, out Stream fileDataStream);
 
             BinaryWriter bw = new BinaryWriter(idxStream);
 
+            // IDX2
             bw.Write(Identifier);
 
             // Version 1.2
             bw.Write(new byte[2] { 1, 2 });
 
             // Number of files
-            bw.Write((ushort)files.Length);
+            bw.Write((ushort)numFiles);
 
             // Archive Size
             bw.Write((uint)(FileSection + fileDataStream.Length));
 
-            // Start of data section
+            // Pointer to data section
             bw.Write(dataSection);
 
+            // ELEMENTAL SOFT
             bw.Write(Author);
 
+            // Write directory info
+            copyStream(idxStream, folderDataStream, FolderSection);
+
             // Copy File list + data
-            bw.BaseStream.Position = FileSection;
-            
-            fileDataStream.Position = 0;
-            fileDataStream.CopyTo(idxStream);
-            fileDataStream.Dispose();
-            fileDataStream.Close();
+            copyStream(idxStream, fileDataStream, FileSection);
 
 
             bw.Dispose();
             bw.Close();
+        }
+
+        private static void copyStream(Stream dest, Stream src, long pos)
+        {
+            dest.Position = pos;
+
+            src.Position = 0;
+            src.CopyTo(dest);
+            src.Dispose();
+            src.Close();
         }
     }
 }
