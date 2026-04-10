@@ -1,15 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Text;
 
 namespace IDXLib
 {
+
+    public class ShiftJis
+    {
+        static Encoding? sjis;
+
+        public static Encoding GetShiftJis()
+        {
+            if (sjis == null)
+            {
+                Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+                sjis = Encoding.GetEncoding(932);
+            }
+
+            return sjis;
+        }
+    }
+
     public class ShiftJisSorter : StringComparer
     {
-        static Encoding sjis;
         int Compare(byte[] a, byte[] b)
         {
             var length = Math.Min(a.Length, b.Length);
@@ -30,12 +41,8 @@ namespace IDXLib
             if (x == null) return -1;
             if (y == null) return 1;
 
-            if (sjis == null)
-            {
-                Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-                sjis = Encoding.GetEncoding(932);
-            }
 
+            var sjis = ShiftJis.GetShiftJis();
             return Compare(sjis.GetBytes(x), sjis.GetBytes(y));
         }
 

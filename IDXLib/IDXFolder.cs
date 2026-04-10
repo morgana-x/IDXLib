@@ -1,4 +1,6 @@
 ﻿
+using System.Text;
+
 namespace IDXLib
 {
     public class IDXFolder
@@ -35,17 +37,12 @@ namespace IDXLib
             s.Write(BitConverter.GetBytes(numFiles));
         }
 
-
-        internal const string FolderChars = "_`abcdefghijklmnopqrstuvwxyz";
-
         public static string GetName(int i)
         {
-            return FolderChars[i].ToString();
-        }
-
-        public static int GetIndex(char c)
-        {
-            return FolderChars.IndexOf(c);
+            if (i >= 16)
+                return Encoding.ASCII.GetString(new byte[] { (byte)(i+48) });
+            else
+                return $"{i}";
         }
     }
 }

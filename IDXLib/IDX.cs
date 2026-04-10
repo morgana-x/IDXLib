@@ -4,9 +4,9 @@
     {
         // Constants
 
-        const int NumFolders = 27;
+        const int NumFolders = 74;
 
-        internal const int FolderSection = 412;
+        internal const int FolderSection = 224;
 
         internal const int FileSection = 1056;
 
@@ -85,9 +85,15 @@
 
             int fileIndex = 0;
 
-            for (int i = 0; i < IDXFolder.FolderChars.Length; i++)
+            for (int i = 0; i < 75; i++)
             {
-                string path = folder + "/" + IDXFolder.FolderChars[i];
+                if (i > 16 && i < 42)
+                {
+                    IDXFolder.Write(directoryStream, 0, 0);
+                    continue;
+                }
+
+                string path = folder + "/" + IDXFolder.GetName(i);
 
                 var files = Directory.Exists(path) ? Directory.GetFiles(path).ToList() : new List<string>();
                 files.Sort(new ShiftJisSorter());

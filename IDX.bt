@@ -34,11 +34,11 @@ typedef struct FolderEntry
 };
 
 
-FSeek(412);
+FSeek(224);
 struct IDXFolders
 {
     // Size 108
-    FolderEntry Entries[27];
+    FolderEntry Entries[75];
     
 } Folders <bgcolor=0xbbffbb>;
 
