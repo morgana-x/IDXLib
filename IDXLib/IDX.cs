@@ -49,7 +49,11 @@
         public byte[] GetFileData(IDXFile file)
         {
             _br.BaseStream.Position = file.Location;
-            return _br.ReadBytes((int)file.Size);
+            byte[] data =  _br.ReadBytes((int)file.Size);
+            
+            IDXObfuscate.Obfuscate(ref data, file.Obfuscation);
+                
+            return data;
         }
 
         public void ExtractFile(IDXFile file, string outFolder)
@@ -102,15 +106,18 @@
 
                 fileIndex += files.Count;
 
+                byte[] fileData;
                 foreach(var f in files)
                 {
-                    var fs = new FileStream(f, FileMode.Open, FileAccess.Read);
+                    fileData = File.ReadAllBytes(f);
 
-                    IDXFile.Write(fileStream, Path.GetFileName(f), (uint)(dataSection + dataStream.Position), (uint)fs.Length, IDXCompress.ShouldBeCompressed(f));
+                    IDXObfuscate.ObfuscationType obfuscation = IDXObfuscate.GetObfuscation(f);
+                    
+                    IDXObfuscate.Obfuscate(ref fileData, obfuscation);
 
-                    fs.CopyTo(dataStream);
-                    fs.Dispose();
-                    fs.Close();
+                    IDXFile.Write(fileStream, Path.GetFileName(f), (uint)(dataSection + dataStream.Position), (uint)fileData.Length, obfuscation);
+                    
+                    dataStream.Write(fileData, 0, fileData.Length);
                 }
             }
 
