@@ -69,7 +69,7 @@
         {
             for (int i = 0; i < Folders.Length; i++)
                 foreach (var file in Folders[i].Files)
-                    ExtractFile(file, $"{outFolder}/{IDXFolder.GetName(i)}/");
+                    ExtractFile(file, $"{outFolder}/");
         }
 
 
@@ -88,6 +88,20 @@
             Stream dataStream = new MemoryStream();
 
             int fileIndex = 0;
+            
+            var allFiles = Directory.GetFiles(folder, "*", SearchOption.AllDirectories);
+            
+            Dictionary<string, List<string>> alphabeticalFolders = new Dictionary<string, List<string>>();
+
+            foreach (var f in allFiles)
+            {
+                var dir = Path.GetFileName(f)[0].ToString().ToLower();
+
+                if (!alphabeticalFolders.ContainsKey(dir))
+                    alphabeticalFolders.Add(dir, new List<string>());
+
+                alphabeticalFolders[dir].Add(f);
+            }
 
             for (int i = 0; i < NumFolders; i++)
             {
@@ -96,10 +110,10 @@
                     IDXFolder.Write(directoryStream, 0, 0);
                     continue;
                 }
+                
+                string dirname =  IDXFolder.GetName(i);
 
-                string path = folder + "/" + IDXFolder.GetName(i);
-
-                var files = Directory.Exists(path) ? Directory.GetFiles(path).ToList() : new List<string>();
+                var files = alphabeticalFolders.ContainsKey(dirname) ? alphabeticalFolders[dirname] : new List<string>();
                 files.Sort(new ShiftJisSorter());
 
                 IDXFolder.Write(directoryStream, (ushort)(files.Count > 0 ? fileIndex : 0), (ushort)files.Count);
